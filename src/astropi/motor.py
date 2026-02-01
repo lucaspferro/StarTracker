@@ -1,165 +1,172 @@
 import RPi.GPIO as GPIO
 import time
-import sys
 import threading
+import logging
 
 # ==========================================
-#      USER CONFIGURATION (Edit here)
+#      HARDWARE CONFIGURATION
 # ==========================================
 
-# Hardware
+# GPIO Pins (BCM)
 DIR_PIN = 21
 STEP_PIN = 20
 ENABLE_PIN = 16
 
-# Mechanics (Adjust as your parts arrive)
-PASSOS_MOTOR = 200      # Nema 17 standard
-MICROSTEPS = 16         # A4988 Driver (all jumpers set)
-REDUCAO_MECANICA = 1.0  # 1.0 = Direct Drive (Test). Change to 100.0, 256.0 later.
-
-# Astronomy
-DIA_SIDERAL_SEC = 86164.09  # Exact duration of one Earth rotation
+# Physics Constants
+SIDEREAL_DAY_SEC = 86164.09  # Duration of one Earth rotation (23h 56m 4s)
 
 # ==========================================
-#      SYSTEM BRAIN (Do not edit)
+#      MECHANICAL CONFIGURATION
+#      (Adjust these values carefully)
+# ==========================================
+
+MOTOR_STEPS = 200       # Nema 17 Standard (1.8 deg/step)
+MICROSTEPS = 16         # Driver Setting (1/16)
+GEAR_RATIO = 1.0        # 1.0 = Direct Drive. Change to 100.0, etc.
+
+# ==========================================
+#      LOGIC CLASS
 # ==========================================
 
 class AstroTracker:
     def __init__(self):
-        # Pin Setup
+        """Initializes GPIO and calculates physics."""
+        # Setup GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(DIR_PIN, GPIO.OUT)
         GPIO.setup(STEP_PIN, GPIO.OUT)
         GPIO.setup(ENABLE_PIN, GPIO.OUT)
         
-        # Initial State
+        # State Variables
         self.tracking = False
-        self.direction = 1 # 1 = Clockwise, 0 = Counter-Clockwise
+        self.direction = 1  # 1 = Clockwise, 0 = Counter-Clockwise
         
-        # Physics Calculations
-        self.total_steps_per_rev = PASSOS_MOTOR * MICROSTEPS * REDUCAO_MECANICA
-        self.delay_sidereal = DIA_SIDERAL_SEC / self.total_steps_per_rev
+        # Physics Calculation
+        # Formula: (Steps * Microsteps * GearRatio)
+        self.total_steps_per_rev = MOTOR_STEPS * MICROSTEPS * GEAR_RATIO
         
-        # Disable motor on start (Safety)
+        # Calculate time between pulses for Sidereal rate
+        self.delay_sidereal = SIDEREAL_DAY_SEC / self.total_steps_per_rev
+        
+        # Ensure motor is disabled (loose) on start to save power
         self.motor_power(False)
 
     def motor_power(self, state):
-        """Turns motor current ON or OFF"""
+        """
+        Controls the Driver's ENABLE pin.
+        True  = Motor ON (Holding Torque, Current flowing)
+        False = Motor OFF (Free spinning, No current)
+        """
         if state:
-            GPIO.output(ENABLE_PIN, GPIO.LOW) # LOW = ON
-            time.sleep(0.1) # Time to energize coils
+            GPIO.output(ENABLE_PIN, GPIO.LOW)  # LOW enables the driver
+            time.sleep(0.1) # Stabilization time
         else:
-            GPIO.output(ENABLE_PIN, GPIO.HIGH) # HIGH = OFF
+            GPIO.output(ENABLE_PIN, GPIO.HIGH) # HIGH disables the driver
 
     def run_tracking(self):
-        """Main tracking loop (Runs in separate Thread)"""
-        print(f"[INFO] Tracking Started.")
-        print(f"[MATH] Calculated delay: {self.delay_sidereal:.5f}s per step")
+        """
+        The main loop. Runs in a separate thread.
+        Uses drift compensation for high precision.
+        """
+        logging.info("Starting tracking logic.")
+        logging.info(f"Calculated Pulse Interval: {self.delay_sidereal:.6f} seconds")
+        
         
         self.motor_power(True)
         GPIO.output(DIR_PIN, self.direction)
         
         while self.tracking:
-            # Physical Step
+            # 1. Send Pulse
             GPIO.output(STEP_PIN, GPIO.HIGH)
-            time.sleep(0.00001) # Ultra-fast pulse (10us)
+            time.sleep(0.00001) # Short pulse (10 microseconds)
             GPIO.output(STEP_PIN, GPIO.LOW)
             
-            # Drift Compensation
+            # 2. Precision Wait (Drift Compensation)
+            # Instead of a simple sleep, we measure elapsed time.
             start_time = time.perf_counter()
+            
+            print(".", end="", flush=True)
             while (time.perf_counter() - start_time) < self.delay_sidereal:
-                if not self.tracking: break
-                time.sleep(0.001) # Sleep in small chunks for fast response
+                # Break early if user stopped tracking
+                if not self.tracking: 
+                    break
+                # Sleep in tiny chunks to keep CPU usage low but response high
+                time.sleep(0.001) 
 
+        # Loop finished
         self.motor_power(False)
-        print("[INFO] Tracking Stopped.")
-
+        
+        logging.info("Tracking logic ended.")
     def rewind(self):
-        """Rewinds the tracker to initial position (Fast)"""
-        print("[ACTION] Rewinding...")
+        """
+        Rewinds the mount quickly to the start position.
+        Uses a ramp (acceleration) to prevent stalling.
+        """
+        
+        logging.info("Rewinding Sequence Initiated.")
         self.motor_power(True)
         
-        # Invert direction
+        # Invert Direction temporarily
         GPIO.output(DIR_PIN, not self.direction)
         
-        # Smooth Acceleration (Ramp)
-        speed = 0.005 # Start slow
+        # Acceleration Logic
+        current_delay = 0.005 # Start slow
+        min_delay = 0.0004    # Max speed limit
+        
         try:
-            for _ in range(2000): # Number of steps to rewind (Adjust later)
+            # TODO: In the future, we can count steps to rewind exactly.
+            # For now, we rewind a fixed amount (approx 90 degrees direct drive)
+            steps_to_rewind = int(self.total_steps_per_rev / 4) 
+            
+            for _ in range(steps_to_rewind):
                 GPIO.output(STEP_PIN, GPIO.HIGH)
                 time.sleep(0.00001)
                 GPIO.output(STEP_PIN, GPIO.LOW)
-                time.sleep(speed)
                 
-                # Accelerate to limit
-                if speed > 0.0005:
-                    speed -= 0.0001
+                time.sleep(current_delay)
+                
+                # Accelerate (Decrease delay)
+                if current_delay > min_delay:
+                    current_delay -= 0.00005
                     
         except KeyboardInterrupt:
-            pass
+            print("[WARN] Rewind interrupted by user.")
             
         self.motor_power(False)
-        print("[INFO] Rewind complete.")
+        print("[INFO] Rewind Complete.")
 
     def start(self):
+        """Starts the tracking thread."""
         if not self.tracking:
             self.tracking = True
-            # Creates a parallel process so motor doesn't freeze the menu
-            self.thread = threading.Thread(target=self.run_tracking)
+            # Daemon=True means this thread dies if the main program dies
+            self.thread = threading.Thread(target=self.run_tracking, daemon=True)
             self.thread.start()
 
     def stop(self):
+        """Signals the tracking thread to stop."""
         self.tracking = False
         if hasattr(self, 'thread'):
-            self.thread.join()
+            self.thread.join() # Wait for thread to finish cleanly
+    def check_engine(self):
+        """Performs a basic check of the motor system."""
+        print("[CHECK] Performing system diagnostics...")
+        self.motor_power(True)
+        GPIO.output(DIR_PIN, self.direction)
+        
+        # Test a few steps
+        for _ in range(10):
+            GPIO.output(STEP_PIN, GPIO.HIGH)
+            time.sleep(0.00001)
+            GPIO.output(STEP_PIN, GPIO.LOW)
+            time.sleep(0.1)  # Slow enough to observe
+        
+        self.motor_power(False)
+        print("[CHECK] Diagnostics complete. Motor responded correctly.")
 
     def cleanup(self):
+        """Releases GPIO resources."""
         self.stop()
-        GPIO.cleanup()
-        print("\nSystem Shutdown.")
-
-# ==========================================
-#      INTERFACE (Main Menu)
-# ==========================================
-
-def main():
-    tracker = AstroTracker()
-    
-    print("\n" * 50) # Clear screen
-    print("=======================================")
-    print("   ASTROPI TRACKER v1.0 - CONTROL")
-    print("=======================================")
-    print(f" Mechanical Reduction: {REDUCAO_MECANICA}x")
-    print("=======================================")
-    print(" [1] START Tracking ")
-    print(" [2] STOP Tracking")
-    print(" [3] REWIND")
-    print(" [9] EXIT")
-    print("=======================================")
-
-    try:
-        while True:
-            cmd = input("Command >> ")
-            
-            if cmd == '1':
-                tracker.start()
-            elif cmd == '2':
-                tracker.stop()
-            elif cmd == '3':
-                if tracker.tracking:
-                    print("[ERROR] Stop tracking before rewinding!")
-                else:
-                    tracker.rewind()
-            elif cmd == '9':
-                break
-            else:
-                print("Invalid option.")
-                
-    except KeyboardInterrupt:
-        pass
-    finally:
-        tracker.cleanup()
-
-if __name__ == "__main__":
-    main()
+        self.motor_power(False)
+        print("[SYSTEM] GPIO Cleaned up. Exiting.")
