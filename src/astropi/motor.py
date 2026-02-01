@@ -4,7 +4,7 @@ import sys
 import threading
 
 # ==========================================
-#      CONFIGURAÇÕES DO USUÁRIO (Edite aqui)
+#      USER CONFIGURATION (Edit here)
 # ==========================================
 
 # Hardware
@@ -12,100 +12,100 @@ DIR_PIN = 21
 STEP_PIN = 20
 ENABLE_PIN = 16
 
-# Mecânica (Ajuste conforme suas peças chegarem)
-PASSOS_MOTOR = 200      # Nema 17 padrão
-MICROSTEPS = 16         # Driver A4988 (todos jumpers ligados)
-REDUCAO_MECANICA = 1.0  # 1.0 = Direto (Teste). Mude para 100.0, 256.0 depois.
+# Mechanics (Adjust as your parts arrive)
+PASSOS_MOTOR = 200      # Nema 17 standard
+MICROSTEPS = 16         # A4988 Driver (all jumpers set)
+REDUCAO_MECANICA = 1.0  # 1.0 = Direct Drive (Test). Change to 100.0, 256.0 later.
 
-# Astronomia
-DIA_SIDERAL_SEC = 86164.09  # Duração exata de uma rotação da Terra
+# Astronomy
+DIA_SIDERAL_SEC = 86164.09  # Exact duration of one Earth rotation
 
 # ==========================================
-#      CÉREBRO DO SISTEMA (Não mexa)
+#      SYSTEM BRAIN (Do not edit)
 # ==========================================
 
 class AstroTracker:
     def __init__(self):
-        # Setup dos Pinos
+        # Pin Setup
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(DIR_PIN, GPIO.OUT)
         GPIO.setup(STEP_PIN, GPIO.OUT)
         GPIO.setup(ENABLE_PIN, GPIO.OUT)
         
-        # Estado Inicial
+        # Initial State
         self.tracking = False
-        self.direction = 1 # 1 = Horário, 0 = Anti-horário
+        self.direction = 1 # 1 = Clockwise, 0 = Counter-Clockwise
         
-        # Cálculos Físicos
+        # Physics Calculations
         self.total_steps_per_rev = PASSOS_MOTOR * MICROSTEPS * REDUCAO_MECANICA
         self.delay_sidereal = DIA_SIDERAL_SEC / self.total_steps_per_rev
         
-        # Desliga motor ao iniciar (Segurança)
+        # Disable motor on start (Safety)
         self.motor_power(False)
 
     def motor_power(self, state):
-        """Liga ou Desliga a corrente do motor"""
+        """Turns motor current ON or OFF"""
         if state:
-            GPIO.output(ENABLE_PIN, GPIO.LOW) # LOW = Ligado
-            time.sleep(0.1) # Tempo para energizar bobinas
+            GPIO.output(ENABLE_PIN, GPIO.LOW) # LOW = ON
+            time.sleep(0.1) # Time to energize coils
         else:
-            GPIO.output(ENABLE_PIN, GPIO.HIGH) # HIGH = Desligado
+            GPIO.output(ENABLE_PIN, GPIO.HIGH) # HIGH = OFF
 
     def run_tracking(self):
-        """Loop principal de rastreamento (Roda em Thread separada)"""
-        print(f"[INFO] Rastreamento Iniciado.")
-        print(f"[MATH] Delay calculado: {self.delay_sidereal:.5f}s por passo")
+        """Main tracking loop (Runs in separate Thread)"""
+        print(f"[INFO] Tracking Started.")
+        print(f"[MATH] Calculated delay: {self.delay_sidereal:.5f}s per step")
         
         self.motor_power(True)
         GPIO.output(DIR_PIN, self.direction)
         
         while self.tracking:
-            # Passo Físico
+            # Physical Step
             GPIO.output(STEP_PIN, GPIO.HIGH)
-            time.sleep(0.00001) # Pulso ultra-rápido (10us)
+            time.sleep(0.00001) # Ultra-fast pulse (10us)
             GPIO.output(STEP_PIN, GPIO.LOW)
             
-            # Compensação de Tempo (Drift Compensation)
+            # Drift Compensation
             start_time = time.perf_counter()
             while (time.perf_counter() - start_time) < self.delay_sidereal:
                 if not self.tracking: break
-                time.sleep(0.001) # Dorme em fatias pequenas para resposta rápida
+                time.sleep(0.001) # Sleep in small chunks for fast response
 
         self.motor_power(False)
-        print("[INFO] Rastreamento Parado.")
+        print("[INFO] Tracking Stopped.")
 
     def rewind(self):
-        """Rebobina o tracker para posição inicial (Rápido)"""
-        print("[ACAO] Rebobinando...")
+        """Rewinds the tracker to initial position (Fast)"""
+        print("[ACTION] Rewinding...")
         self.motor_power(True)
         
-        # Inverte direção
+        # Invert direction
         GPIO.output(DIR_PIN, not self.direction)
         
-        # Aceleração Suave (Rampa)
-        velocidade = 0.005 # Começa lento
+        # Smooth Acceleration (Ramp)
+        speed = 0.005 # Start slow
         try:
-            for _ in range(2000): # Número de passos para voltar (Ajuste depois)
+            for _ in range(2000): # Number of steps to rewind (Adjust later)
                 GPIO.output(STEP_PIN, GPIO.HIGH)
                 time.sleep(0.00001)
                 GPIO.output(STEP_PIN, GPIO.LOW)
-                time.sleep(velocidade)
+                time.sleep(speed)
                 
-                # Acelera até o limite
-                if velocidade > 0.0005:
-                    velocidade -= 0.0001
+                # Accelerate to limit
+                if speed > 0.0005:
+                    speed -= 0.0001
                     
         except KeyboardInterrupt:
             pass
             
         self.motor_power(False)
-        print("[INFO] Rebobinagem concluída.")
+        print("[INFO] Rewind complete.")
 
     def start(self):
         if not self.tracking:
             self.tracking = True
-            # Cria um processo paralelo para o motor não travar o menu
+            # Creates a parallel process so motor doesn't freeze the menu
             self.thread = threading.Thread(target=self.run_tracking)
             self.thread.start()
 
@@ -117,30 +117,30 @@ class AstroTracker:
     def cleanup(self):
         self.stop()
         GPIO.cleanup()
-        print("\nSistema Desligado.")
+        print("\nSystem Shutdown.")
 
 # ==========================================
-#      INTERFACE (Menu Principal)
+#      INTERFACE (Main Menu)
 # ==========================================
 
 def main():
     tracker = AstroTracker()
     
-    print("\n" * 50) # Limpa tela
+    print("\n" * 50) # Clear screen
     print("=======================================")
     print("   ASTROPI TRACKER v1.0 - CONTROL")
     print("=======================================")
-    print(f" Redução Mecânica: {REDUCAO_MECANICA}x")
+    print(f" Mechanical Reduction: {REDUCAO_MECANICA}x")
     print("=======================================")
-    print(" [1] INICIAR Rastreamento (Sideral)")
-    print(" [2] PARAR Rastreamento")
-    print(" [3] REBOBINAR (Rewind)")
-    print(" [9] SAIR")
+    print(" [1] START Tracking ")
+    print(" [2] STOP Tracking")
+    print(" [3] REWIND")
+    print(" [9] EXIT")
     print("=======================================")
 
     try:
         while True:
-            cmd = input("Comando >> ")
+            cmd = input("Command >> ")
             
             if cmd == '1':
                 tracker.start()
@@ -148,13 +148,13 @@ def main():
                 tracker.stop()
             elif cmd == '3':
                 if tracker.tracking:
-                    print("[ERRO] Pare o rastreamento antes de rebobinar!")
+                    print("[ERROR] Stop tracking before rewinding!")
                 else:
                     tracker.rewind()
             elif cmd == '9':
                 break
             else:
-                print("Opção inválida.")
+                print("Invalid option.")
                 
     except KeyboardInterrupt:
         pass
