@@ -1,1 +1,12 @@
-*/__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.swp
+.venv/
+venv/
+
+build/
+dist/
+src/astropi.egg-info/
+Tracker/
