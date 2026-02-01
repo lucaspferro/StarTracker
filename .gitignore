@@ -8,5 +8,5 @@ venv/
 
 build/
 dist/
-src/astropi.egg-info/
+src/*.egg-info/
 Tracker/
