@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/astropi/__init__.py
+src/astropi/cli.py
+src/astropi/motor.py
+src/astropi.egg-info/PKG-INFO
+src/astropi.egg-info/SOURCES.txt
+src/astropi.egg-info/dependency_links.txt
+src/astropi.egg-info/entry_points.txt
+src/astropi.egg-info/requires.txt
+src/astropi.egg-info/top_level.txt
