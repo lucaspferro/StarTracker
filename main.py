@@ -24,6 +24,7 @@ INITIAL_ANGLE_DEG = 10.0
 R_MM       = 300.0
 P_MM       = 0.7
 OM_RAD_MIN = 0.0043633
+
 # ==========================================
 # BACKEND
 # ==========================================
@@ -42,7 +43,7 @@ class AstroTracker:
         self.direction     = 1
         self.start_time    = 0
 
-		self.initial_angle_deg = 10.0  # valor default
+        self.initial_angle_deg = 10.0  # valor default
         self.current_time_min = 0.0
         self.current_rpm      = 0.0
         self.current_angle    = 0.0
@@ -63,31 +64,31 @@ class AstroTracker:
         self.motor_power(True)
         GPIO.output(DIR_PIN, self.direction)
         self.start_time = time.perf_counter()
-    
-        initial_deg = self.initial_angle_deg  # ? vem do backend
+        
+        initial_deg = self.initial_angle_deg  
         initial_rad = math.radians(initial_deg)
-    
+        
         while self.tracking:
             self.current_time_min = (time.perf_counter() - self.start_time) / 60.0
-    
+            
             w   = initial_rad / 2.0 + (OM_RAD_MIN * self.current_time_min) / 2.0
             vel = R_MM * OM_RAD_MIN * math.cos(w)
-    
+            
             self.current_rpm   = vel / P_MM
             self.current_angle = initial_deg + math.degrees(OM_RAD_MIN * self.current_time_min)
-    
+            
             passos_por_segundo = (self.current_rpm * PASSOS_TOTAIS_REV) / 60.0
             delay_passo        = 1.0 / passos_por_segundo
-    
+            
             GPIO.output(STEP_PIN, GPIO.HIGH)
             GPIO.output(STEP_PIN, GPIO.LOW)
-    
+            
             target = time.perf_counter() + delay_passo - 0.00001
             while time.perf_counter() < target:
                 if not self.tracking:
                     break
                 time.sleep(0.001)
-    
+                
         self.motor_power(False)
 
     # --- MANUAL MODE ---
@@ -120,7 +121,8 @@ class AstroTracker:
                 time.sleep(0.0001)
 
         self.motor_power(False)
-         # --- REWIND ---
+
+    # --- REWIND ---
     def run_rewind(self):
         print("[MOTOR] Starting rewind...")
         self.motor_power(True)
@@ -169,7 +171,6 @@ class AstroTracker:
         self.current_time_min = 0.0
         self.current_angle    = 0.0
 
-
 # ==========================================
 # WIDGETS
 # ==========================================
@@ -204,26 +205,13 @@ class StatCard(QFrame):
     def set_value(self, v):
         self.val.setText(v)
 
-
 class Divider(QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QFrame.Shape.HLine)
         self.setStyleSheet("color:#1e3a5f; background:#1e3a5f; border:none; max-height:1px;")
 
-
-
-
-
-
-
-
-
-
-
-
-
-	# ==========================================
+# ==========================================
 # MAIN WINDOW
 # ==========================================
 class TrackerGUI(QWidget):
@@ -236,7 +224,6 @@ class TrackerGUI(QWidget):
         self.timer.start(100)
 
     def _build_ui(self):
-        #self.setWindowTitle("Observatory Control")
         self.setFixedSize(520, 580)
         self.setStyleSheet("""
             QWidget {
@@ -339,37 +326,37 @@ class TrackerGUI(QWidget):
         grid.addWidget(self.card_rpm,   1, 0, 1, 2)
         root.addLayout(grid)
         
-            # --- INITIAL ANGLE ?  AQUI, entre os cards e o manual ---
-       angle_group = QGroupBox("INITIAL ANGLE")
-       angle_layout = QHBoxLayout()
-       angle_layout.setContentsMargins(14, 10, 14, 14)
+        # --- INITIAL ANGLE ---
+        angle_group = QGroupBox("INITIAL ANGLE")
+        angle_layout = QHBoxLayout()
+        angle_layout.setContentsMargins(14, 10, 14, 14)
 
-       lbl_angle = QLabel("Starting position of the tracker")
-       lbl_angle.setStyleSheet("color:#4a7fa5; font-size:11px;")
+        lbl_angle = QLabel("Starting position of the tracker")
+        lbl_angle.setStyleSheet("color:#4a7fa5; font-size:11px;")
 
-       self.spin_angle = QDoubleSpinBox()
-       self.spin_angle.setMinimum(0.0)
-       self.spin_angle.setMaximum(90.0)
-       self.spin_angle.setValue(10.0)
-       self.spin_angle.setSuffix("  deg")
-       self.spin_angle.setDecimals(1)
-       self.spin_angle.setStyleSheet("""
-        QDoubleSpinBox {
-            background: #0d1b2e;
-            color: #e2f0ff;
-            border: 1px solid #1e3a5f;
-            border-radius: 6px;
-            padding: 6px;
-            font-family: 'Courier New';
-            font-size: 13px;
-        }
-    """)
+        self.spin_angle = QDoubleSpinBox()
+        self.spin_angle.setMinimum(0.0)
+        self.spin_angle.setMaximum(90.0)
+        self.spin_angle.setValue(10.0)
+        self.spin_angle.setSuffix("  deg")
+        self.spin_angle.setDecimals(1)
+        self.spin_angle.setStyleSheet("""
+            QDoubleSpinBox {
+                background: #0d1b2e;
+                color: #e2f0ff;
+                border: 1px solid #1e3a5f;
+                border-radius: 6px;
+                padding: 6px;
+                font-family: 'Courier New';
+                font-size: 13px;
+            }
+        """)
 
-       angle_layout.addWidget(lbl_angle)
-       angle_layout.addStretch()
-       angle_layout.addWidget(self.spin_angle)
-       angle_group.setLayout(angle_layout)
-       root.addWidget(angle_group)
+        angle_layout.addWidget(lbl_angle)
+        angle_layout.addStretch()
+        angle_layout.addWidget(self.spin_angle)
+        angle_group.setLayout(angle_layout)
+        root.addWidget(angle_group)
 
         # --- MANUAL CONTROL ---
         manual_group = QGroupBox("MANUAL SLEW")
@@ -440,8 +427,8 @@ class TrackerGUI(QWidget):
             }}
         """)
         return b
-	
-	# ==========================================
+    
+    # ==========================================
     # UI LOGIC
     # ==========================================
     def _set_status(self, text, color):
@@ -460,7 +447,6 @@ class TrackerGUI(QWidget):
     def _reset_rewind_btn(self):
         self.btn_rewind.setText("REWIND")
         self.btn_rewind.setStyleSheet(self.btn_rewind.styleSheet().replace("#b45309", "#d97706").replace("#92400e", "#b45309"))
-        # Rebuild cleanly
         self.btn_rewind.setStyleSheet("""
             QPushButton { background:#d97706; color:white; font-weight:bold;
                 font-size:11px; letter-spacing:1px; padding:12px 6px;
@@ -468,6 +454,7 @@ class TrackerGUI(QWidget):
             QPushButton:hover { background:#b45309; }
             QPushButton:disabled { background:#1e293b; color:#334155; }
         """)
+
     def _toggle_rewind(self):
         print(f"[UI] Rewind clicked | is_rewinding={self.tracker.is_rewinding}")
         if self.tracker.is_rewinding:
@@ -475,7 +462,7 @@ class TrackerGUI(QWidget):
             self._reset_rewind_btn()
             self.btn_start.setEnabled(True)
             self.chk_manual.setEnabled(True)
-            self._set_status("? IDLE", "#4a7fa5")
+            self._set_status("● IDLE", "#4a7fa5")
         else:
             if not self.tracker.tracking and not self.tracker.is_manual:
                 self.tracker.start_rewind()
@@ -488,15 +475,15 @@ class TrackerGUI(QWidget):
                 """)
                 self.btn_start.setEnabled(False)
                 self.chk_manual.setEnabled(False)
-                self._set_status(" REWINDING...", "#f59e0b")
+                self._set_status("● REWINDING...", "#f59e0b")
 
     def _start(self):
-		self.tracker.initial_angle_deg = self.spin_angle.value() 
-		self.spin_angle.setEnabled(False)
+        self.tracker.initial_angle_deg = self.spin_angle.value() 
+        self.spin_angle.setEnabled(False)
         self.tracker.start()
         self.chk_manual.setEnabled(False)
         self.btn_rewind.setEnabled(False)
-        self._set_status("? TRACKING  ISOSCELES", "#22c55e")
+        self._set_status("● TRACKING  ISOSCELES", "#22c55e")
 
     def _stop(self):
         self.tracker.stop()
@@ -506,9 +493,9 @@ class TrackerGUI(QWidget):
         self.btn_rewind.setEnabled(True)
         self.chk_manual.setEnabled(True)
         if self.chk_manual.isChecked():
-            self._set_status("? MANUAL MODE ACTIVE", "#f59e0b")
+            self._set_status("● MANUAL MODE ACTIVE", "#f59e0b")
         else:
-            self._set_status("? STOPPED", "#ef4444")
+            self._set_status("● STOPPED", "#ef4444")
             
     def _toggle_manual(self, state):
         if state == 2:
@@ -516,7 +503,7 @@ class TrackerGUI(QWidget):
             self.slider.setEnabled(True)
             self.btn_start.setEnabled(False)
             self.btn_rewind.setEnabled(False)
-            self._set_status("? MANUAL MODE ACTIVE", "#f59e0b")
+            self._set_status("● MANUAL MODE ACTIVE", "#f59e0b")
         else:
             self.tracker.stop_manual_mode()
             self.slider.setValue(0)
@@ -524,7 +511,7 @@ class TrackerGUI(QWidget):
             self.btn_start.setEnabled(True)
             self.btn_rewind.setEnabled(True)
             self.lbl_rpm.setText("0 RPM")
-            self._set_status("? IDLE", "#4a7fa5")
+            self._set_status("● IDLE", "#4a7fa5")
 
     def _slider_changed(self, value):
         self.lbl_rpm.setText(f"{value:+d} RPM")
@@ -535,14 +522,14 @@ class TrackerGUI(QWidget):
 
     def _reset(self):
         self.tracker.reset()
-        self.spin_angle.setEnabled(True)   # ? adiciona essa linha
-		self.spin_angle.setValue(10.0)
+        self.spin_angle.setEnabled(True)
+        self.spin_angle.setValue(10.0)
         self._reset_rewind_btn()
         self.chk_manual.setChecked(False)
         self.chk_manual.setEnabled(True)
         self.btn_start.setEnabled(True)
         self.btn_rewind.setEnabled(True)
-        self._set_status("? RESET", "#64748b")
+        self._set_status("● RESET", "#64748b")
 
     def _refresh(self):
         if self.tracker.tracking or self.tracker.is_manual:
@@ -556,7 +543,6 @@ class TrackerGUI(QWidget):
             self.card_angle.set_value("0.0000")
             self.card_rpm.set_value("0.00000")
 
-
 # ==========================================
 # MAIN
 # ==========================================
@@ -569,10 +555,9 @@ if __name__ == "__main__":
     try:
         sys.exit(app.exec())
     finally:
-        print("\n[SYSTEM] Shutting down  cleaning up GPIO...")
+        print("\n[SYSTEM] Shutting down & cleaning up GPIO...")
         tracker.stop()
         tracker.stop_manual_mode()
         GPIO.output(ENABLE_PIN, GPIO.HIGH)
         GPIO.output(STEP_PIN,   GPIO.LOW)
         GPIO.output(DIR_PIN,    GPIO.LOW)
-fffff
