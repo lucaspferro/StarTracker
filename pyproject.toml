@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astropi"
+version = "0.1.0"
+description = "Star Tracker Controller"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "RPi.GPIO",
+]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]  
+
+[project.scripts]
+astropi = "astropi.cli:main"
