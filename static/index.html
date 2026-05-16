@@ -3,75 +3,98 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>AstroZeca — Observatory Control</title>
+	<title>Saturn</title>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+	
 	<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="container">
+
+<div class="app-container">
 
 	<!-- HEADER -->
-	<div class="header">
-		<h1>Observatory</h1>
-		<div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-			<span>OBSERVATORY CONTROL</span>
-			<div class="badge">
-				<div class="badge-dot disconnected" id="conn-dot"></div>
-				<span id="conn-label">DISCONNECTED</span>
-			</div>
+	<header class="header">
+		<div>
+			<h1>Tracker-Control</h1>
+		</div>
+		<div class="badge">
+			<div class="badge-dot disconnected" id="conn-dot"></div>
+			<span id="conn-label">OFFLINE</span>
+		</div>
+	</header>
+
+	<!-- SYSTEM STATUS -->
+	<div class="status-bar">
+		<span class="status-label">SYSTEM STATUS</span>
+		<span class="status-value" id="status">IDLE</span>
+	</div>
+
+	<!-- TELEMETRY DATA -->
+	<div class="telemetry-grid">
+		<div class="data-card">
+			<div class="data-label">Elapsed Time</div>
+			<div class="data-value" id="val-time">0.00<span class="data-unit">min</span></div>
+		</div>
+
+		<div class="data-card">
+			<div class="data-label">Current Angle</div>
+			<div class="data-value" id="val-angle">0.0000<span class="data-unit">deg</span></div>
+		</div>
+
+		<div class="data-card wide">
+			<div class="data-label">Tracking Rate</div>
+			<div class="data-value rate-value" id="val-rpm">0.00000<span class="data-unit">RPM</span></div>
 		</div>
 	</div>
 
-	<!-- STATUS -->
-	<div id="status">IDLE</div>
-
-	<!-- CARDS -->
-	<div class="cards">
-		<div class="card">
-			<div class="card-label">Elapsed</div>
-			<div class="card-value" id="val-time">0.00</div>
-			<div class="card-unit">minutes</div>
-		</div>
-		<div class="card">
-			<div class="card-label">Angle</div>
-			<div class="card-value" id="val-angle">0.0000</div>
-			<div class="card-unit">degrees</div>
-		</div>
-		<div class="card wide">
-			<div class="card-label">Speed</div>
-			<div class="card-value" id="val-rpm">0.00000</div>
-			<div class="card-unit">RPM</div>
-		</div>
-	</div>
-
-	<!-- INITIAL ANGLE -->
-	<div class="group">
-		<span class="group-title">INITIAL ANGLE</span>
-		<div class="angle-row">
-			<label for="initial-angle">Starting position of the tracker</label>
+	<!-- CONFIGURATION -->
+	<div class="control-section">
+		<div class="section-header">Configuration</div>
+		
+		<div class="input-row">
+			<label for="initial-angle">Initial Position (Deg)</label>
 			<input type="number" id="initial-angle" value="10.0" min="0" max="90" step="0.1">
 		</div>
 	</div>
 
-	<!-- MANUAL SLEW -->
-	<div class="group">
-		<span class="group-title">MANUAL SLEW</span>
-		<label class="manual-check">
-			<input type="checkbox" id="chk-manual"> Enable Manual Mode
-		</label>
-		<input type="range" id="slider" min="-60" max="60" value="0" disabled>
-		<div id="slider-val">0 RPM</div>
+	<!-- MANUAL OVERRIDE -->
+	<div class="control-section">
+		<div class="section-header flex-between">
+			<span>Manual Slew</span>
+			<!-- Novo Switch Mobile-Friendly -->
+			<label class="toggle-switch">
+				<span class="toggle-label">Enable</span>
+				<div class="toggle-wrapper">
+					<input type="checkbox" id="chk-manual">
+					<span class="toggle-bg"></span>
+				</div>
+			</label>
+		</div>
+
+		<div class="slider-container">
+			<div class="slider-header">
+				<span class="slider-min">-60</span>
+				<span class="slider-current" id="slider-val">0 RPM</span>
+				<span class="slider-max">+60</span>
+			</div>
+			<input type="range" id="slider" min="-60" max="60" value="0" disabled>
+		</div>
 	</div>
 
-	<!-- BUTTONS -->
-	<div class="buttons">
-		<button id="btn-start">START</button>
-		<button id="btn-stop">STOP</button>
-		<button id="btn-rewind">REWIND</button>
-		<button id="btn-reset">RESET</button>
+	<!-- OPERATIONS -->
+	<div class="action-buttons">
+		<button id="btn-start" class="btn btn-primary">START</button>
+		<button id="btn-stop" class="btn btn-danger">STOP</button>
+		<button id="btn-rewind" class="btn btn-warning">REWIND</button>
+		<button id="btn-reset" class="btn btn-secondary">RESET</button>
 	</div>
 
 </div>
 
 <script src="/static/main.js"></script>
+
 </body>
 </html>
