@@ -4,13 +4,12 @@ import json
 import asyncio
 import threading
 
-# --- GPIO: troca por mock se nao estiver no Pi ---
 try:
 	import RPi.GPIO as GPIO
 	ON_PI = True
 except ImportError:
 	ON_PI = False
-	print("[WARN] RPi.GPIO nao encontrado — rodando em modo simulado")
+	print("[WARN] RPi.GPIO nao encontrado â€” rodando em modo simulado")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +31,7 @@ P_MM       = 0.7
 OM_RAD_MIN = 0.0043633
 
 # ==========================================
-# GPIO MOCK (para desenvolvimento fora do Pi)
+# GPIO MOCK 
 # ==========================================
 if not ON_PI:
 	class _GPIO:
@@ -221,11 +220,11 @@ class ConnectionManager:
 	async def connect(self, ws: WebSocket):
 		await ws.accept()
 		self.active.append(ws)
-		print(f"[WS] Client connected — total: {len(self.active)}")
+		print(f"[WS] Client connected â€” total: {len(self.active)}")
 
 	def disconnect(self, ws: WebSocket):
 		self.active.remove(ws)
-		print(f"[WS] Client disconnected — total: {len(self.active)}")
+		print(f"[WS] Client disconnected â€” total: {len(self.active)}")
 
 	async def broadcast(self, data: dict):
 		payload = json.dumps(data)
@@ -282,10 +281,12 @@ async def websocket_endpoint(ws: WebSocket):
 			raw  = await ws.receive_text()
 			data = json.loads(raw)
 			cmd  = data.get("cmd")
-
+			#print(f"[WS] Comando recebido: {cmd} | data: {data}")
 			if cmd == "start":
+				#print(f"[WS] Iniciando tracking | angle: {data.get('initial_angle')}")
 				tracker.initial_angle_deg = float(data.get("initial_angle", 10.0))
 				tracker.start()
+				#print(f"[WS] tracker.tracking = {tracker.tracking}")
 
 			elif cmd == "stop":
 				tracker.stop()
@@ -308,8 +309,8 @@ async def websocket_endpoint(ws: WebSocket):
 			elif cmd == "manual_rpm":
 				tracker.manual_rpm = float(data.get("rpm", 0.0))
 
-			else:
-				print(f"[WS] Unknown command: {cmd}")
+			#else:
+				#print(f"[WS] Unknown command: {cmd}")
 
 	except WebSocketDisconnect:
 		manager.disconnect(ws)
