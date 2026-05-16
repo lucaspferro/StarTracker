@@ -1,7 +1,7 @@
 // ==========================================
 // WEBSOCKET
 // ==========================================
-const WS_URL = `ws://localhost:8000/ws`;
+const WS_URL = `ws://${location.host}/ws`;
 let   ws     = null;
 
 const connDot   = document.getElementById("conn-dot");
